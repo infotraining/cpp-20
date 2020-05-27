@@ -7,7 +7,12 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
       CACHE STRING "")
 endif()
 
-message(STATUS "Vcpkg integration script found: " ${CMAKE_TOOLCHAIN_FILE})
+if (DEFINED CMAKE_TOOLCHAIN_FILE)
+  message(STATUS "Vcpkg integration script found: " ${CMAKE_TOOLCHAIN_FILE})
+else()
+  message(STATUS "Vcpkg integration script NOT found!")
+endif()
+
 
 ##################
 # Project
@@ -19,10 +24,10 @@ project(${PROJECT_MAIN})
 
 ####################
 # Packages & libs
-find_package(range-v3 CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)    
 
 ####################
 # Main app
-add_executable(${PROJECT_MAIN} concordance.cpp)
-target_link_libraries(${PROJECT_MAIN} PRIVATE ${PROJECT_LIB} meta range-v3)
-target_compile_features(${PROJECT_MAIN} PUBLIC cxx_std_17)  
+add_executable(${PROJECT_MAIN} basic_ranges.cpp custom_view.cpp main.cpp)
+target_link_libraries(${PROJECT_MAIN} PRIVATE ${PROJECT_LIB} Catch2::Catch2)
+target_compile_features(${PROJECT_MAIN} PUBLIC cxx_std_20)

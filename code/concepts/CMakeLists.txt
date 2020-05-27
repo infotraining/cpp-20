@@ -14,9 +14,9 @@ file(GLOB HEADERS_LIST "*.h" "*.hpp")
 add_executable(${PROJECT_NAME} ${SRC_LIST} ${HEADERS_LIST})
 
 if (MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE "/await")
+    target_compile_options(${PROJECT_NAME} PRIVATE /await  /std:c++latest)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE "-fconcepts")
+    #target_compile_options(${PROJECT_NAME} PRIVATE "-fconcepts")
     target_compile_options(${PROJECT_NAME} PRIVATE "-std=c++2a")
 endif()
 
