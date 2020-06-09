@@ -1,0 +1,19 @@
+
+
+# PITCHME-DOT-YAML-SETTINGS-THEME-BUILDER-GENERATED-START
+theme            : template
+theme-background : [ "#2D5569" ]
+theme-headline   : [ "Lato", "#F1C40F", "none", "#FFFFFF", "60", "130", "15" ]
+theme-byline     : [ "Lato", "#F1C40F", "none", "#5FBAD8", "100", "120", "15" ]
+theme-text       : [ "Lato", "#FFFFFF", "none", "#92DFD3", "90", "110", "15" ]
+theme-links      : [ "greenyellow", "orange" ]
+theme-code       : [ "Victor Mono", "100", "120" ]
+highlight        : agate
+code-line-numbers : true
+theme-controls   : [ "#C0C0C0" ]
+theme-margins    : [ "0", "15px" ]
+logo             : slides_pl/img/logo.png
+logo-position    : bottom-right
+layout           : center
+theme-override   : slides_pl/css/custom-theme.css
+# PITCHME-DOT-YAML-SETTINGS-THEME-BUILDER-GENERATED-END

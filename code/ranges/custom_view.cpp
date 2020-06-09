@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include <array>
 #include <iostream>
 #include <memory>
 #include <ranges>
@@ -7,9 +8,9 @@
 namespace rngs = std::ranges;
 
 template <typename TRange>
-    requires 
-        rngs::input_range<TRange>
-        && std::common_reference_with<rngs::range_reference_t<TRange>, std::uint64_t> 
+     requires
+         rngs::input_range<TRange>
+         && std::common_reference_with<rngs::range_reference_t<TRange>, std::uint64_t>
 class ViewAddConstant : public rngs::view_base
 {
     struct DataMembers
@@ -20,43 +21,50 @@ class ViewAddConstant : public rngs::view_base
     std::shared_ptr<DataMembers> data_members_;
 
 public:
-    struct Iterator : rngs::iterator_t<TRange>
+    using TRangeIterator = rngs::iterator_t<TRange>;
+
+    template <typename Iter>
+    class ConstantIterator
     {
-        using Base = rngs::iterator_t<TRange>;
-        using Reference = uint64_t;
+        Iter pos_;
+    public:
+        using value_type = uint64_t;
+        using reference = uint64_t;
+        using difference_type = ptrdiff_t;
+        using const_reference = uint64_t;
 
-        Iterator() = default;
+        ConstantIterator() = default;
 
-        Iterator(const Base& b)
-            : Base {b}
+        ConstantIterator(Iter pos) : pos_{pos}
+        {}
+
+        ConstantIterator& operator++()
         {
-        }
-
-        Iterator operator++(int)
-        {
-            auto iter = *this;
-            static_cast<Base&>(*this)++;
-            return iter;
-        }
-
-        Iterator& operator++()
-        {
-            ++static_cast<Base&>(*this);
+            ++pos_;
             return *this;
         }
 
-        Reference operator*() const
+        ConstantIterator operator++(int)
         {
-            return *static_cast<Base>(*this) + 42;
+            ConstantIterator tmp = *this;
+            pos_++;
+            return tmp;
         }
+
+        reference operator*() const
+        {
+            return *pos_ + 42;
+        }
+
+        auto operator<=>(const ConstantIterator&) const = default;
     };
 
     using reference = uint64_t;
     using const_reference = uint64_t;
     using value_type = uint64_t;
 
-    using iterator = Iterator;
-    using const_iterator = Iterator;
+    using iterator = ConstantIterator<TRangeIterator>;
+    using const_iterator = ConstantIterator<TRangeIterator>;
 
     ViewAddConstant() = default;
 
@@ -65,9 +73,14 @@ public:
     {
     }
 
-    iterator begin() const
+    const_iterator begin() const
     {
-        return std::begin(data_members_->range);
+        return iterator{std::begin(data_members_->range)};
+    }
+
+    iterator begin()
+    {
+        return iterator{std::begin(data_members_->range)};
     }
 
     const_iterator cbegin() const
@@ -75,27 +88,32 @@ public:
         return begin();
     }
 
-    iterator end() const
+    const_iterator end() const
     {
-        return std::end(data_members_->range);
+        return iterator {std::end(data_members_->range)};
+    }
+
+    iterator end()
+    {
+        return iterator {std::end(data_members_->range)};
     }
 
     const_iterator cend() const
     {
         return end();
-    }        
+    }
 };
+
+template <typename TRange>
+ViewAddConstant(TRange &&)->ViewAddConstant<TRange>;
 
 static_assert(rngs::input_range<ViewAddConstant<std::vector<uint64_t>>>);
 static_assert(rngs::view<ViewAddConstant<std::vector<uint64_t>>>);
 
-template <typename TRange>
-ViewAddConstant(TRange&&) -> ViewAddConstant<TRange>;
-
 struct AddConstantFn
 {
     template <typename TRange>
-        requires 
+        requires
             rngs::input_range<TRange>
             && std::common_reference_with<rngs::range_reference_t<TRange>, uint64_t>
     auto operator()(TRange&& range) const
@@ -105,17 +123,16 @@ struct AddConstantFn
 };
 
 template <typename TRange>
-    requires 
-        rngs::input_range<TRange>
+    requires rngs::input_range<TRange>
         && std::common_reference_with<rngs::range_reference_t<TRange>, uint64_t>
 auto operator|(TRange&& range, const AddConstantFn&)
 {
-   return ViewAddConstant {std::forward<TRange>(range)};
+    return ViewAddConstant {std::forward<TRange>(range)};
 }
 
 namespace custom_views
 {
-   constexpr AddConstantFn add_constant;
+    constexpr AddConstantFn add_constant;
 }
 
 TEST_CASE("ViewAddConstant")
@@ -133,14 +150,14 @@ TEST_CASE("ViewAddConstant")
     {
         const std::vector vec = {1, 2, 3, 4, 5};
 
-        ViewAddConstant view_add_constant(vec);        
+        ViewAddConstant view_add_constant(vec);
 
         REQUIRE(rngs::equal(view_add_constant, std::vector {43, 44, 45, 46, 47}));
     }
 
     SECTION("r-value")
-    {        
-        ViewAddConstant view_add_constant(std::vector<int>{1, 2, 3, 4, 5});        
+    {
+        ViewAddConstant view_add_constant(std::vector<int> {1, 2, 3, 4, 5});
 
         REQUIRE(rngs::equal(view_add_constant, std::vector {43, 44, 45, 46, 47}));
     }
@@ -167,9 +184,57 @@ TEST_CASE("custom_view::add_constant")
     }
 
     SECTION("r-value")
-    {        
-        auto view_add_constant = std::vector{1, 2, 3, 4, 5} | custom_views::add_constant;
+    {
+        auto view_add_constant = std::vector {1, 2, 3, 4, 5} | custom_views::add_constant;
 
         REQUIRE(rngs::equal(view_add_constant, std::vector {43, 44, 45, 46, 47}));
     }
+}
+
+template <typename Iter>
+class ConstantIterator
+{
+    Iter pos_;
+public:
+    using value_type = uint64_t;
+    using reference = uint64_t;
+    using difference_type = ptrdiff_t;
+    using const_reference = uint64_t;
+
+    ConstantIterator() = default;
+
+    ConstantIterator(Iter pos) : pos_{pos}
+    {}
+
+    ConstantIterator& operator++()
+    {
+        ++pos_;
+        return *this;
+    }
+
+    ConstantIterator operator++(int)
+    {
+        ConstantIterator tmp = *this;
+        pos_++;
+        return tmp;
+    }
+
+    reference operator*() const
+    {
+        return *pos_ + 42;
+    }
+
+    auto operator<=>(const ConstantIterator&) const = default;
+};
+
+TEST_CASE("iterator")
+{
+    std::array vec = {1, 2, 3, 4};
+
+    ConstantIterator it{vec.begin()};
+
+    REQUIRE(*it == 43);
+    REQUIRE(*(++it) == 44);
+
+    static_assert(std::input_iterator<decltype(it)>);
 }

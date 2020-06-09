@@ -28,7 +28,7 @@ find_package(Catch2 CONFIG REQUIRED)
 
 ####################
 # Main app
-add_executable(${PROJECT_MAIN} basic_ranges.cpp custom_view.cpp main.cpp)
+add_executable(${PROJECT_MAIN} constexpr.cpp main.cpp)
 target_link_libraries(${PROJECT_MAIN} PRIVATE ${PROJECT_LIB} Catch2::Catch2)
 target_compile_features(${PROJECT_MAIN} PUBLIC cxx_std_20)
 target_compile_options(${PROJECT_MAIN} PUBLIC "-fconcepts-diagnostics-depth=2")
