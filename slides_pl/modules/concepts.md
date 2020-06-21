@@ -57,6 +57,162 @@ concept Hashable = requires(T a) {
 
 +++
 
+### Szablony z ograniczeniami - 1
+
+``` c++ code-noblend
+template <std::integral T>
+T square(T x)
+{
+    return x * x;
+}
+```
+
++++
+
+### Szablony z ograniczeniami - 2
+
+``` c++ code-noblend
+template <typename T>
+concept PrintableRange = std::ranges::range<T> && requires {
+    std::cout << std::declval<std::ranges::range_value_t<T>>();
+};
+
+void print(PrintableRange auto const& rng)
+{
+    for(const auto& item : rng)
+        std::cout << item << " ";
+    std::cout << "\n";
+}
+
+print(std::vector{1, 2, 3});
+
+print(std::map<int, std::string>{ {1, "one"}, {2, "two"} });
+```
+@[1-4](Definicja konceptu `PrintableRange`)
+@[6](Użycie konceptu jako ograniczenia dla parametru szablonu)
+@[13](@css[text-ok](OK!))
+@[15](@css[text-error](ERROR! `std::map<int, std::string>` nie spełnia wymagań definiowanych przez koncept))
+
++++
+
+### Koncepty + placeholder auto
+
+Od C++20 możemy poprzedzić deklarację z placeholderem `auto` lub `decltype(auto)` konceptem ograniczającym:
+
+``` c++ code-noblend
+auto get_id()
+{
+    static int id_gen{};
+    return ++id_gen;
+}
+
+std::unsigned_integral auto id = get_id();
+```
+@[7](Deklaracja `auto` z ograniczeniem typu)
+@[7](@css[text-error](ERROR! deduced initializer does not satisfy placeholder constraints))
+
++++
+
+### Koncepty + placeholder auto
+
+Od C++20 możemy poprzedzić deklarację zmiennej z `auto` lub `decltype(auto)` konceptem
+ograniczającym:
+
+``` c++ code-noblend
+auto get_id()
+{
+    static size_t id_gen{};
+    return ++id_gen;
+}
+
+std::unsigned_integral auto id = get_id();
+```
+@[7](@css[text-ok](OK!))
+
++++
+
+### Koncepty + placeholder auto
+
+Od C++20 możemy poprzedzić deklarację zmiennej z `auto` lub `decltype(auto)` konceptem
+ograniczającym:
+
+``` c++ code-noblend
+std::unsigned_integral auto get_id()
+{
+    static size_t id_gen{};
+    return ++id_gen;
+}
+
+std::unsigned_integral auto id = get_id();
+```
+@[1-5](Ograniczenie może również być stosowane przy deklaracjach automatycznej detekcji typu zwracanego z funkcji!)
+
++++
+
+### Placeholder auto z ograniczeniem
+
+Jeśli przed placeholderem `auto` występuje koncept `C<A...>`, to dedukowany typ `T` musi spełniać ograniczenia zdefiniowane wyrażeniem `C<T, A...>`
+
+``` c++ code-noblend
+std::unsigned_integral auto get_id()
+{
+    static size_t id_gen{};
+    return ++id_gen;
+}
+
+ std::convertible_to<uint64_t> auto id64 = get_id();
+```
+@[7](Dedukowany typ `size_t` jest podstawiony do konceptu `std::convertible_to<uint64_t, size_t>`)
+@[7](@css[text-ok](OK!))
+
++++
+
+### Ograniczenie szablonu (template constraint)
+
+jest sekwencją logicznych operacji i operandów, które określają wymagania, jakie muszą spełniać argumenty szablonu.
+
++++
+
+#### Ograniczenia
+
+Są trzy rodzaje ograniczeń:
+* koniunkcja *conjuction*
+* dysjunkcja *disjunction*
+* ograniczenie atomowe
+
++++
+
+#### Koniunkcja ograniczeń
+
+* Koniunkcja dwóch ograniczeń jest spełniona jeśli obydwa ograniczenia są spełnione.
+* Ewaluacja przebiega od lewej do prawej (*short-circuited*)
+  * jeśli lewy operand nie jest spełniony, nie jest wykonywane podstawianie argumentów szablonu dla prawego operanda
+
+``` c++ code-noblend
+template <typename T>
+constexpr bool get_value() { return T::value; }
+
+template <typename T>
+    requires (sizeof(T) > 1) && (get_value<T>())
+void f(T);   // #1
+
+void f(int); // #2
+
+f('a'); // OK! calls f(int)
+```
+@[5](Definicja ograniczenia - koniunkcja)
+@[5, 10](Podczas sprawdzania ograniczeń dla #1 lewy operand koniunkcji 'sizeof(char) > 1' nie jest spełniony  `=>` `get_value<T>()` nie jest sprawdzane)
+@[8, 10](#1 nie spełnia ograniczeń `=>` wywołana jest funkcja #2)
+
++++
+
+#### Dysjunkcja ograniczeń
+
+* tworzona przy pomocy operatora `||` w wyrażeniu ograniczającym
+* jest spełniona jeśli spełniony jest jeden lub drugi operand ograniczenia (*short-circuited*)
+
++++
+
 ### Wyrażenie requires
 
 Umożliwia zwięzłe zdefiniowanie wymagań dotyczących argumentów szablonu, które mogą być sprawdzone na etapie

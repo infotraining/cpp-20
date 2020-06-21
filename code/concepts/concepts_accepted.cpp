@@ -2,8 +2,11 @@
 #include <type_traits>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <ranges>
+
+using namespace std::literals;
 
 template <typename T>
 concept Hashable = requires(T a) {
@@ -24,75 +27,7 @@ TEST_CASE("hash concept")
     //calculate_hash(Dummy{});
 }
 
-//---------------------------
-// atomic constraints
 
-template <typename T> constexpr bool is_meowable = true;
-template <typename T> constexpr bool is_cat = true;
-
-template <typename T>
-concept Meowable = is_meowable<T>;
-
-template <typename T>
-concept BadMeowableCat = is_meowable<T> && is_cat<T>;
-
-template <typename T>
-concept GoodMeowableCat = Meowable<T> && is_cat<T>;
-
-template <Meowable T>
-void f1(T);
-
-template<BadMeowableCat T>
-void f1(T);
-
-template <Meowable T>
-void f2(T)
-{
-    std::cout << "f2() requires Meowable T\n";
-}
-
-template <GoodMeowableCat T>
-void f2(T)
-{
-    std::cout << "f2 requires GoodMeowableCat\n";
-}
-
-TEST_CASE("atomic constraints - 1")
-{
-    //f1(0); // error, ambiguous:
-             // the is_meowable<T> in Meowable and BadMeowableCat forms distinct
-             // atomic constraints that are not identical (and so do not subsume each other)
-
-    f2(0); // OK, calls #4, more constrained than #3
-           // GoodMeowableCat got its is_meowable<T> from Meowable
-}
-
-
-template <size_t N> constexpr bool Atomic = true;
-
-template <size_t N> concept Constraint = Atomic<N>;
-
-template <size_t N> concept Add1 = Constraint<N + 1>;
-template <size_t N> concept AddOne = Constraint<N + 1>;
-
-template <size_t M> void f()
-    requires Add1<2 * M>
-{
-    std::cout << "f<M>() with constraint Add1<2 * M + 1>\n";
-}
-
-template <size_t N> int f()
-    requires AddOne<2 * N> && true
-{
-    std::cout << "f<M>() with constraint AddOne<2 * M + 1>\n";
-    return N;
-}
-
-TEST_CASE("atomic constraint - 2")
-{
-    auto x = f<0>();
-    REQUIRE(x == 0);
-}
 
 ////////////////////////////////
 // requires
@@ -253,8 +188,8 @@ TEST_CASE("sum")
     auto words = { "one"s, "two"s, "three"s };
     REQUIRE(sum(words) == "onetwothree"s);
 
-    auto tokens = { "one", "two", "three" };
-    REQUIRE(sum(tokens) == "onetwothree"s);
+    // auto tokens = { "one", "two", "three" };
+    // REQUIRE(sum(tokens) == "onetwothree"s);
 }
 
 template <typename T>
@@ -269,3 +204,81 @@ TEST_CASE("lean pointer")
     static_assert(LeanPointer<std::unique_ptr<int>>);     
     //static_assert(LeanPointer<std::shared_ptr<int>>);
 }
+
+//////////////////////////////////////////
+// PrintableRange
+
+template <typename T>
+concept PrintableRange = std::ranges::range<T> && requires {
+    std::cout << std::declval<std::ranges::range_value_t<T>>();
+};
+
+void print(PrintableRange auto const& rng)
+{
+    for(const auto& item : rng)
+        std::cout << item << " ";
+    std::cout << "\n";
+}
+
+TEST_CASE("printing range")
+{
+    print(std::vector{1, 2, 3});
+
+    //print(std::map<int, std::string>{ {1, "one"}, {2, "two"} });
+}
+
+std::unsigned_integral auto get_id()
+{
+    static size_t id_gen{};
+
+    return ++id_gen;
+}
+
+TEST_CASE("auto + concept")
+{
+    std::unsigned_integral auto id = get_id();
+
+    std::convertible_to<uint64_t> auto id64 = get_id();
+}
+
+/////////////////////////////
+// Constraints
+
+template <typename T>
+concept Incrementable = std::incrementable<T>;
+
+template <typename T>
+concept Decrementable = requires (T obj) {
+    --obj;
+    obj--;
+};
+
+template <Incrementable T>
+    requires Decrementable<T>
+void foo(T)
+{}
+
+template <Incrementable T>
+    requires Decrementable<T>
+void foo(T); // redeclaration
+
+// template <typename T>
+//     requires Incrementable<T> && Decrementable<T>
+// void foo(T)
+// {}
+
+template <Incrementable T>
+    requires Decrementable<T>
+void bar(T) {}
+
+template <Decrementable T>
+    requires Incrementable<T>
+void bar(T) {}
+
+
+TEST_CASE("constraints")
+{
+    foo(std::vector{1, 2, 3}.begin());
+    //bar(std::vector{1, 2, 3}.begin());
+}
+
