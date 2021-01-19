@@ -3,6 +3,7 @@
 #include <concepts>
 #include <boost/hana.hpp>
 #include <boost/type_index.hpp>
+#include <fmt/core.h>
 
 namespace Concepts
 {
@@ -214,7 +215,8 @@ namespace Concepts
 
             Concepts::tree auto& current_tree = tree.subtree(location);
             
-            std::cout << "send_down(" << msg_name << ") at " << location << " - " << current_tree << "\n";
+            //std::cout << "send_down(" << msg_name << ") at " << location << " - " << current_tree << "\n";
+            fmt::print("send_down({} at {} - subtree: {}", msg_name, location, current_tree);
 
             if constexpr(requires { current_tree.root.handle(msg); })
             {
