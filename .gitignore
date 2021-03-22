@@ -182,3 +182,4 @@ doc_pl/_build/*
 doc_en/_build/*
 
 *.pptx
+*.db

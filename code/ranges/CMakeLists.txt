@@ -22,13 +22,31 @@ string(REPLACE " " "_" PROJECT_ID ${PROJECT_NAME_DIR})
 set(PROJECT_MAIN ${PROJECT_ID})
 project(${PROJECT_MAIN})
 
+
 ####################
 # Packages & libs
 find_package(Catch2 CONFIG REQUIRED)    
 
 ####################
+# Sources & headers
+aux_source_directory(. SRC_LIST)
+file(GLOB HEADERS_LIST "*.h" "*.hpp")
+
+####################
 # Main app
-add_executable(${PROJECT_MAIN} basic_ranges.cpp custom_view.cpp main.cpp)
+add_executable(${PROJECT_MAIN} ${SRC_LIST} ${HEADERS_LIST})
+
 target_link_libraries(${PROJECT_MAIN} PRIVATE ${PROJECT_LIB} Catch2::Catch2)
-target_compile_features(${PROJECT_MAIN} PUBLIC cxx_std_20)
-target_compile_options(${PROJECT_MAIN} PUBLIC "-fconcepts-diagnostics-depth=2")
+
+if (MSVC)
+    target_compile_options(${PROJECT_MAIN} PRIVATE /await  /std:c++latest)
+else()
+    target_compile_features(${PROJECT_MAIN} PUBLIC cxx_std_20)
+    #target_compile_options(${PROJECT_MAIN} PRIVATE "-fconcepts-diagnostics-depth=2")
+    #target_compile_options(${PROJECT_MAIN} PRIVATE "-fmodules-ts")
+endif()
+
+
+####################
+# Resources
+file(COPY en.dict DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
